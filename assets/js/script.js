@@ -61,23 +61,29 @@ class FluidPoint {
             
             if (distance < CONFIG.ANIMATION.MAX_DISTANCE) {
                 const force = (CONFIG.ANIMATION.MAX_DISTANCE - distance) / CONFIG.ANIMATION.MAX_DISTANCE;
-                const forceFactor = 0.5; // Added force reduction factor
+                const forceFactor = 0.5;
                 this.vx += (dx / distance) * force * this.density * forceFactor;
                 this.vy += (dy / distance) * force * this.density * forceFactor;
             }
         } else {
-            // Return to original position when mouse is not moving
-            this.vx += (this.baseX - this.x) * CONFIG.ANIMATION.RETURN_FORCE * 1.5;
-            this.vy += (this.baseY - this.y) * CONFIG.ANIMATION.RETURN_FORCE * 1.5;
+            // Smoother return to original position
+            const dx = this.baseX - this.x;
+            const dy = this.baseY - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Apply a distance-based return force
+            const returnForceFactor = Math.min(distance / 50, 1) * CONFIG.ANIMATION.RETURN_FORCE;
+            this.vx += dx * returnForceFactor;
+            this.vy += dy * returnForceFactor;
         }
 
-        // Apply forces with damping
-        const damping = 0.98; // Added damping factor
+        // Enhanced damping for smoother transitions
+        const damping = state.isMouseMoving ? 0.98 : 0.95;
         this.vx *= CONFIG.ANIMATION.DRAG_FORCE * damping;
         this.vy *= CONFIG.ANIMATION.DRAG_FORCE * damping;
         
-        // Apply velocity with maximum speed limit
-        const maxSpeed = 2.5; // Added speed limit
+        // Apply velocity with dynamic speed limit
+        const maxSpeed = state.isMouseMoving ? 2.5 : 1.5;
         const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         if (currentSpeed > maxSpeed) {
             const scale = maxSpeed / currentSpeed;
@@ -197,13 +203,18 @@ function handleTouchStart(e) {
     state.mouse.x = touch.clientX - rect.left;
     state.mouse.y = touch.clientY - rect.top;
     state.isMouseMoving = true;
+
+    clearTimeout(state.mouseTimer);
 }
 
 function handleTouchEnd() {
     state.isTouch = false;
-    state.mouse.x = undefined;
-    state.mouse.y = undefined;
-    state.isMouseMoving = false;
+    clearTimeout(state.mouseTimer);
+    state.mouseTimer = setTimeout(() => {
+        state.isMouseMoving = false;
+        state.mouse.x = undefined;
+        state.mouse.y = undefined;
+    }, 150);
 }
 
 function handleResize() {
