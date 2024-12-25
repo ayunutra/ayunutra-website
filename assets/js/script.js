@@ -1,89 +1,237 @@
-const canvas = document.createElement('canvas');
-document.body.appendChild(canvas);
+// Configuration
+const CONFIG = {
+    POINT_SPACING: 30,
+    ANIMATION: {
+        MAX_DISTANCE: 100,
+        DRAG_FORCE: 0.975,  // Increased from 0.95 for smoother movement
+        RETURN_FORCE: 0.03, // Decreased from 0.05 for gentler return
+        IDLE_TIMEOUT: 100   // ms before particles return to original position
+    },
+    COLORS: [
+        'rgba(76, 175, 147, 0.3)',
+        'rgba(98, 200, 221, 0.3)',
+        'rgba(136, 212, 171, 0.3)'
+    ]
+};
 
-const ctx = canvas.getContext('2d');
-
-// Set canvas size
-function setCanvasSize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+// State Management
+class State {
+    constructor() {
+        this.mouse = { x: undefined, y: undefined };
+        this.points = [];
+        this.canvas = null;
+        this.ctx = null;
+        this.animationStarted = false;
+        this.isMouseMoving = false;
+        this.mouseTimer = null;
+        this.bounds = null;
+    }
 }
-setCanvasSize();
 
-let particles = [];
+const state = new State();
 
-// Particle Object
-class Particle {
+// Point Class
+class FluidPoint {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.speedX = Math.random() * 2 - 1; // Random horizontal drift
-        this.speedY = Math.random() * 2 - 1; // Random vertical drift
-        this.opacity = 1; // Start fully visible
-        this.life = 1; // Life span to fade out
+        this.baseX = x;
+        this.baseY = y;
+        this.density = (Math.random() * 20) + 1;  // Reduced from 30 for less dramatic movement
+        this.radius = 2;
+        this.color = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+        this.vx = 0;
+        this.vy = 0;
     }
 
-    update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        this.opacity -= 0.02; // Gradually fade out
-        this.life -= 0.01; // Decrease life
+    draw() {
+        state.ctx.beginPath();
+        state.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        state.ctx.fillStyle = this.color;
+        state.ctx.fill();
     }
 
-    isDead() {
-        return this.life <= 0 || this.opacity <= 0;
-    }
-}
-
-// Create Particles on Mouse Move
-function createParticles(e) {
-    const mouseX = e.clientX;
-    const mouseY = e.clientY;
-    for (let i = 0; i < 3; i++) {
-        particles.push(new Particle(mouseX, mouseY));
-    }
-}
-
-// Draw Connections Between Particles
-function drawConnections() {
-    for (let a = 0; a < particles.length; a++) {
-        let connections = 0; // Track the number of connections per particle
-        for (let b = a + 1; b < particles.length; b++) {
-            if (connections >= 3) break; // Limit each particle to 3 connections
-            const dx = particles[a].x - particles[b].x;
-            const dy = particles[a].y - particles[b].y;
+    update(mouse) {
+        if (state.isMouseMoving && mouse.x && mouse.y) {
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < 120) { // Increased connection distance
-                const alpha = Math.min(particles[a].opacity, particles[b].opacity) * (1 - distance / 120); // Smooth fade by distance
-                ctx.strokeStyle = `rgba(76, 175, 147, ${alpha})`;
-                ctx.lineWidth = 0.8; // Slightly thicker lines for larger spread
-                ctx.beginPath();
-                ctx.moveTo(particles[a].x, particles[a].y);
-                ctx.lineTo(particles[b].x, particles[b].y);
-                ctx.stroke();
-                connections++; // Count the connection
+            
+            if (distance < CONFIG.ANIMATION.MAX_DISTANCE) {
+                const force = (CONFIG.ANIMATION.MAX_DISTANCE - distance) / CONFIG.ANIMATION.MAX_DISTANCE;
+                const forceFactor = 0.5; // Added force reduction factor
+                this.vx += (dx / distance) * force * this.density * forceFactor;
+                this.vy += (dy / distance) * force * this.density * forceFactor;
             }
+        } else {
+            // Return to original position when mouse is not moving
+            this.vx += (this.baseX - this.x) * CONFIG.ANIMATION.RETURN_FORCE * 1.5;
+            this.vy += (this.baseY - this.y) * CONFIG.ANIMATION.RETURN_FORCE * 1.5;
+        }
+
+        // Apply forces with damping
+        const damping = 0.98; // Added damping factor
+        this.vx *= CONFIG.ANIMATION.DRAG_FORCE * damping;
+        this.vy *= CONFIG.ANIMATION.DRAG_FORCE * damping;
+        
+        // Apply velocity with maximum speed limit
+        const maxSpeed = 2.5; // Added speed limit
+        const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (currentSpeed > maxSpeed) {
+            const scale = maxSpeed / currentSpeed;
+            this.vx *= scale;
+            this.vy *= scale;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        this.handleBoundaryCollision();
+    }
+
+    handleBoundaryCollision() {
+        const buffer = this.radius * 2;
+        const bounds = state.bounds;
+        
+        if (this.x < bounds.left + buffer || this.x > bounds.right - buffer) {
+            this.vx *= -0.5;
+            this.x = Math.max(bounds.left + buffer, Math.min(this.x, bounds.right - buffer));
+        }
+        if (this.y < bounds.top + buffer || this.y > bounds.bottom - buffer) {
+            this.vy *= -0.5;
+            this.y = Math.max(bounds.top + buffer, Math.min(this.y, bounds.bottom - buffer));
         }
     }
 }
 
-// Animate Particles and Connections
+// Canvas Setup
+function setupCanvas() {
+    state.canvas = document.createElement('canvas');
+    state.ctx = state.canvas.getContext('2d');
+    state.canvas.style.visibility = 'hidden';
+    
+    // Append canvas to main content
+    const mainContent = document.getElementById('main-content');
+    mainContent.appendChild(state.canvas);
+    
+    updateCanvasBounds();
+}
+
+function updateCanvasBounds() {
+    if (!state.canvas) return;
+    
+    const mainContent = document.getElementById('main-content');
+    const rect = mainContent.getBoundingClientRect();
+    
+    state.bounds = {
+        left: 0,
+        top: 0,
+        right: rect.width,
+        bottom: rect.height
+    };
+    
+    state.canvas.width = rect.width;
+    state.canvas.height = rect.height;
+}
+
+// Point Management
+function createPoints() {
+    state.points = [];
+    const columns = Math.floor(state.bounds.right / CONFIG.POINT_SPACING);
+    const rows = Math.floor(state.bounds.bottom / CONFIG.POINT_SPACING);
+    
+    for (let i = 0; i < columns; i++) {
+        for (let j = 0; j < rows; j++) {
+            const x = (CONFIG.POINT_SPACING / 2) + (i * CONFIG.POINT_SPACING);
+            const y = (CONFIG.POINT_SPACING / 2) + (j * CONFIG.POINT_SPACING);
+            state.points.push(new FluidPoint(x, y));
+        }
+    }
+}
+
+// Animation
 function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Update and remove dead particles
-    particles = particles.filter(particle => {
-        particle.update();
-        return !particle.isDead();
+    if (!state.animationStarted) return;
+    
+    state.ctx.clearRect(0, 0, state.bounds.right, state.bounds.bottom);
+    state.points.forEach(point => {
+        point.update(state.mouse);
+        point.draw();
     });
-
-    // Draw connections only
-    drawConnections();
-
     requestAnimationFrame(animate);
 }
 
-window.addEventListener('mousemove', createParticles);
-window.addEventListener('resize', setCanvasSize);
+// Event Handlers
+function handleMouseMove(e) {
+    const mainContent = document.getElementById('main-content');
+    const rect = mainContent.getBoundingClientRect();
+    
+    // Calculate mouse position relative to main content
+    state.mouse.x = e.clientX - rect.left;
+    state.mouse.y = e.clientY - rect.top;
+    
+    // Reset mouse movement timer
+    state.isMouseMoving = true;
+    clearTimeout(state.mouseTimer);
+    state.mouseTimer = setTimeout(() => {
+        state.isMouseMoving = false;
+    }, CONFIG.ANIMATION.IDLE_TIMEOUT);
+}
 
-animate();
+function handleTouchMove(e) {
+    e.preventDefault();
+    const mainContent = document.getElementById('main-content');
+    const rect = mainContent.getBoundingClientRect();
+    
+    state.mouse.x = e.touches[0].clientX - rect.left;
+    state.mouse.y = e.touches[0].clientY - rect.top;
+    
+    state.isMouseMoving = true;
+    clearTimeout(state.mouseTimer);
+    state.mouseTimer = setTimeout(() => {
+        state.isMouseMoving = false;
+    }, CONFIG.ANIMATION.IDLE_TIMEOUT);
+}
+
+function handleMouseLeave() {
+    state.mouse.x = undefined;
+    state.mouse.y = undefined;
+    state.isMouseMoving = false;
+}
+
+function handleResize() {
+    updateCanvasBounds();
+    createPoints();
+}
+
+// Splash Screen Handler
+function handleSplashScreen() {
+    const splashScreen = document.getElementById('splash-screen');
+    if (splashScreen) {
+        splashScreen.addEventListener('animationend', (e) => {
+            if (e.animationName === 'riseUp') {
+                state.canvas.style.visibility = 'visible';
+                state.animationStarted = true;
+                animate();
+            }
+        });
+    }
+}
+
+// Initialize
+function init() {
+    setupCanvas();
+    createPoints();
+    
+    // Event Listeners
+    const mainContent = document.getElementById('main-content');
+    mainContent.addEventListener('mousemove', handleMouseMove);
+    mainContent.addEventListener('touchmove', handleTouchMove, { passive: false });
+    mainContent.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('resize', handleResize);
+    
+    handleSplashScreen();
+}
+
+// Start the application
+document.addEventListener('DOMContentLoaded', init);
