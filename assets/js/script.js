@@ -78,12 +78,12 @@ class FluidPoint {
         }
 
         // Enhanced damping for smoother transitions
-        const damping = state.isMouseMoving ? 0.98 : 0.95;
+        const damping = 0.98;
         this.vx *= CONFIG.ANIMATION.DRAG_FORCE * damping;
         this.vy *= CONFIG.ANIMATION.DRAG_FORCE * damping;
         
         // Apply velocity with dynamic speed limit
-        const maxSpeed = state.isMouseMoving ? 2.5 : 1.5;
+        const maxSpeed = 2.5;
         const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         if (currentSpeed > maxSpeed) {
             const scale = maxSpeed / currentSpeed;
