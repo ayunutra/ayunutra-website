@@ -179,18 +179,27 @@ function handleMouseMove(e) {
 }
 
 function handleTouchMove(e) {
-    e.preventDefault();
+    e.preventDefault(); // Prevent default only if moving horizontally
     const mainContent = document.getElementById('main-content');
     const rect = mainContent.getBoundingClientRect();
-    
+
     state.mouse.x = e.touches[0].clientX - rect.left;
     state.mouse.y = e.touches[0].clientY - rect.top;
-    
-    state.isMouseMoving = true;
-    clearTimeout(state.mouseTimer);
-    state.mouseTimer = setTimeout(() => {
+
+    // Determine swipe direction
+    const touchMoveY = e.touches[0].clientY;
+    if (Math.abs(touchMoveY - state.mouse.y) < Math.abs(e.touches[0].clientX - state.mouse.x)) {
+        // Horizontal swipe detected
+        state.isMouseMoving = true;
+        clearTimeout(state.mouseTimer);
+        state.mouseTimer = setTimeout(() => {
+            state.isMouseMoving = false;
+        }, CONFIG.ANIMATION.IDLE_TIMEOUT);
+    } else {
+        // Vertical swipe detected, allow scrolling
         state.isMouseMoving = false;
-    }, CONFIG.ANIMATION.IDLE_TIMEOUT);
+        return; // Do not prevent default behavior for vertical swipes
+    }
 }
 
 function handleMouseLeave() {
