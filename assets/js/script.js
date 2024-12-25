@@ -3,9 +3,10 @@ const CONFIG = {
     POINT_SPACING: 30,
     ANIMATION: {
         MAX_DISTANCE: 100,
-        DRAG_FORCE: 0.975,  // Increased from 0.95 for smoother movement
-        RETURN_FORCE: 0.03, // Decreased from 0.05 for gentler return
-        IDLE_TIMEOUT: 100   // ms before particles return to original position
+        DRAG_FORCE: 0.975,
+        RETURN_FORCE: 0.03,
+        IDLE_TIMEOUT: 100,
+        FADE_DURATION: 1000 // Duration of fade-in animation in milliseconds
     },
     COLORS: [
         'rgba(76, 175, 147, 0.3)',
@@ -13,6 +14,62 @@ const CONFIG = {
         'rgba(136, 212, 171, 0.3)'
     ]
 };
+
+// Splash Screen Animation Controller
+class SplashScreenController {
+    constructor() {
+        this.splashScreen = document.getElementById('splash-screen');
+        this.mainContent = document.getElementById('main-content');
+        this.setupSplashScreen();
+    }
+
+    setupSplashScreen() {
+        // Create logo container
+        const logoContainer = document.createElement('div');
+        logoContainer.className = 'logo-container';
+        
+        // Add circular progress
+        const logoCircle = document.createElement('div');
+        logoCircle.className = 'logo-circle';
+        logoContainer.appendChild(logoCircle);
+        
+        // Add logo
+        const logo = document.createElement('img');
+        logo.src = 'assets/images/letter-logo.png';
+        logo.alt = 'Logo';
+        logoContainer.appendChild(logo);
+        
+        this.splashScreen.appendChild(logoContainer);
+        
+        // Start animation sequence
+        this.startAnimationSequence();
+    }
+
+    startAnimationSequence() {
+        // Wait for logo animation to complete (1.2s)
+        setTimeout(() => {
+            this.finishSplashScreen();
+        }, 1500); // Slightly longer than animation to ensure smooth transition
+    }
+
+    finishSplashScreen() {
+        // Add rise-up class for final animation
+        this.splashScreen.classList.add('rise-up');
+        
+        // Show main content and start particle animation
+        this.splashScreen.addEventListener('animationend', (e) => {
+            if (e.animationName === 'riseUp') {
+                // Initialize particle animation
+                state.canvas.style.visibility = 'visible';
+                state.animationStarted = true;
+                animate();
+                
+                // Remove splash screen
+                this.splashScreen.remove();
+            }
+        });
+    }
+}
 
 // State Management
 class State {
@@ -27,6 +84,7 @@ class State {
         this.bounds = null;
         this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         this.isTouch = false;
+        this.fadeStartTime = null;
     }
 }
 
@@ -39,9 +97,11 @@ class FluidPoint {
         this.y = y;
         this.baseX = x;
         this.baseY = y;
-        this.density = (Math.random() * 20) + 1;  // Reduced from 30 for less dramatic movement
+        this.density = (Math.random() * 20) + 1;
         this.radius = 2;
-        this.color = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+        this.baseColor = CONFIG.COLORS[Math.floor(Math.random() * CONFIG.COLORS.length)];
+        this.color = this.baseColor;
+        this.opacity = 0; // Start with 0 opacity
         this.vx = 0;
         this.vy = 0;
     }
@@ -49,11 +109,19 @@ class FluidPoint {
     draw() {
         state.ctx.beginPath();
         state.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        state.ctx.fillStyle = this.color;
+        // Use the current opacity for drawing
+        const color = this.baseColor.replace('0.3', this.opacity.toFixed(3));
+        state.ctx.fillStyle = color;
         state.ctx.fill();
     }
 
     update(mouse) {
+        // Update opacity based on animation progress
+        if (state.fadeStartTime) {
+            const progress = (Date.now() - state.fadeStartTime) / CONFIG.ANIMATION.FADE_DURATION;
+            this.opacity = Math.min(0.3, progress * 0.3); // Max opacity is 0.3
+        }
+
         if (state.isMouseMoving && mouse.x && mouse.y) {
             const dx = mouse.x - this.x;
             const dy = mouse.y - this.y;
@@ -66,23 +134,19 @@ class FluidPoint {
                 this.vy += (dy / distance) * force * this.density * forceFactor;
             }
         } else {
-            // Smoother return to original position
             const dx = this.baseX - this.x;
             const dy = this.baseY - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // Apply a distance-based return force
             const returnForceFactor = Math.min(distance / 50, 1) * CONFIG.ANIMATION.RETURN_FORCE;
             this.vx += dx * returnForceFactor;
             this.vy += dy * returnForceFactor;
         }
 
-        // Enhanced damping for smoother transitions
         const damping = 0.98;
         this.vx *= CONFIG.ANIMATION.DRAG_FORCE * damping;
         this.vy *= CONFIG.ANIMATION.DRAG_FORCE * damping;
         
-        // Apply velocity with dynamic speed limit
         const maxSpeed = 2.5;
         const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         if (currentSpeed > maxSpeed) {
@@ -160,6 +224,11 @@ function createPoints() {
 // Animation
 function animate() {
     if (!state.animationStarted) return;
+    
+    // Initialize fade start time when animation begins
+    if (!state.fadeStartTime) {
+        state.fadeStartTime = Date.now();
+    }
     
     state.ctx.clearRect(0, 0, state.bounds.right, state.bounds.bottom);
     state.points.forEach(point => {
@@ -260,5 +329,8 @@ function init() {
     handleSplashScreen();
 }
 
-// Start the application
-document.addEventListener('DOMContentLoaded', init);
+// Initialize splash screen after DOM content is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new SplashScreenController();
+    init(); // Initialize the rest of the application
+});
