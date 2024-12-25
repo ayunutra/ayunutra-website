@@ -25,6 +25,8 @@ class State {
         this.isMouseMoving = false;
         this.mouseTimer = null;
         this.bounds = null;
+        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        this.isTouch = false;
     }
 }
 
@@ -163,46 +165,42 @@ function animate() {
 
 // Event Handlers
 function handleMouseMove(e) {
-    const mainContent = document.getElementById('main-content');
-    const rect = mainContent.getBoundingClientRect();
-    
-    // Calculate mouse position relative to main content
-    state.mouse.x = e.clientX - rect.left;
-    state.mouse.y = e.clientY - rect.top;
-    
-    // Reset mouse movement timer
-    state.isMouseMoving = true;
-    clearTimeout(state.mouseTimer);
-    state.mouseTimer = setTimeout(() => {
-        state.isMouseMoving = false;
-    }, CONFIG.ANIMATION.IDLE_TIMEOUT);
-}
-
-function handleTouchMove(e) {
-    e.preventDefault(); // Prevent default only if moving horizontally
-    const mainContent = document.getElementById('main-content');
-    const rect = mainContent.getBoundingClientRect();
-
-    state.mouse.x = e.touches[0].clientX - rect.left;
-    state.mouse.y = e.touches[0].clientY - rect.top;
-
-    // Determine swipe direction
-    const touchMoveY = e.touches[0].clientY;
-    if (Math.abs(touchMoveY - state.mouse.y) < Math.abs(e.touches[0].clientX - state.mouse.x)) {
-        // Horizontal swipe detected
+    if (!state.isMobile) {  // Only handle mouse events on desktop
+        const mainContent = document.getElementById('main-content');
+        const rect = mainContent.getBoundingClientRect();
+        
+        state.mouse.x = e.clientX - rect.left;
+        state.mouse.y = e.clientY - rect.top;
+        
         state.isMouseMoving = true;
         clearTimeout(state.mouseTimer);
         state.mouseTimer = setTimeout(() => {
             state.isMouseMoving = false;
         }, CONFIG.ANIMATION.IDLE_TIMEOUT);
-    } else {
-        // Vertical swipe detected, allow scrolling
-        state.isMouseMoving = false;
-        return; // Do not prevent default behavior for vertical swipes
     }
 }
 
 function handleMouseLeave() {
+    if (!state.isMobile) {
+        state.mouse.x = undefined;
+        state.mouse.y = undefined;
+        state.isMouseMoving = false;
+    }
+}
+
+function handleTouchStart(e) {
+    const touch = e.touches[0];
+    const mainContent = document.getElementById('main-content');
+    const rect = mainContent.getBoundingClientRect();
+    
+    state.isTouch = true;
+    state.mouse.x = touch.clientX - rect.left;
+    state.mouse.y = touch.clientY - rect.top;
+    state.isMouseMoving = true;
+}
+
+function handleTouchEnd() {
+    state.isTouch = false;
     state.mouse.x = undefined;
     state.mouse.y = undefined;
     state.isMouseMoving = false;
@@ -234,11 +232,20 @@ function init() {
     
     // Event Listeners
     const mainContent = document.getElementById('main-content');
-    mainContent.addEventListener('mousemove', handleMouseMove);
-    mainContent.addEventListener('touchmove', handleTouchMove, { passive: false });
-    mainContent.addEventListener('mouseleave', handleMouseLeave);
-    window.addEventListener('resize', handleResize);
     
+    // Desktop events
+    if (!state.isMobile) {
+        mainContent.addEventListener('mousemove', handleMouseMove);
+        mainContent.addEventListener('mouseleave', handleMouseLeave);
+    }
+    
+    // Mobile events
+    if (state.isMobile) {
+        mainContent.addEventListener('touchstart', handleTouchStart);
+        mainContent.addEventListener('touchend', handleTouchEnd);
+    }
+    
+    window.addEventListener('resize', handleResize);
     handleSplashScreen();
 }
 
