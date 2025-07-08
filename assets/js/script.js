@@ -35,7 +35,7 @@ class SplashScreenController {
         
         // Add logo
         const logo = document.createElement('img');
-        logo.src = 'assets/images/letter-logo.png';
+        logo.src = 'assets/images/letter-logo.webp';
         logo.alt = 'Logo';
         logoContainer.appendChild(logo);
         
@@ -109,10 +109,12 @@ class FluidPoint {
     draw() {
         state.ctx.beginPath();
         state.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        // Use the current opacity for drawing
-        const color = this.baseColor.replace('0.3', this.opacity.toFixed(3));
-        state.ctx.fillStyle = color;
-        state.ctx.fill();
+        // Fix opacity handling - don't replace if opacity is 0
+        if (this.opacity > 0) {
+            const color = this.baseColor.replace('0.3', this.opacity.toFixed(3));
+            state.ctx.fillStyle = color;
+            state.ctx.fill();
+        }
     }
 
     update(mouse) {
@@ -120,6 +122,9 @@ class FluidPoint {
         if (state.fadeStartTime) {
             const progress = (Date.now() - state.fadeStartTime) / CONFIG.ANIMATION.FADE_DURATION;
             this.opacity = Math.min(0.3, progress * 0.3); // Max opacity is 0.3
+        } else if (!state.fadeStartTime && state.animationStarted) {
+            // Ensure particles are visible once animation starts
+            this.opacity = 0.3;
         }
 
         if (state.isMouseMoving && mouse.x && mouse.y) {
@@ -181,29 +186,29 @@ function setupCanvas() {
     state.canvas = document.createElement('canvas');
     state.ctx = state.canvas.getContext('2d');
     state.canvas.style.visibility = 'hidden';
+    state.canvas.style.position = 'fixed';
+    state.canvas.style.top = '0';
+    state.canvas.style.left = '0';
+    state.canvas.style.pointerEvents = 'none';
+    state.canvas.style.zIndex = '-1';
     
-    // Append canvas to main content
-    const mainContent = document.getElementById('main-content');
-    mainContent.appendChild(state.canvas);
-    
+    // Append canvas to body instead of main content
+    document.body.appendChild(state.canvas);
     updateCanvasBounds();
 }
 
 function updateCanvasBounds() {
     if (!state.canvas) return;
     
-    const mainContent = document.getElementById('main-content');
-    const rect = mainContent.getBoundingClientRect();
-    
     state.bounds = {
         left: 0,
         top: 0,
-        right: rect.width,
-        bottom: rect.height
+        right: window.innerWidth,
+        bottom: window.innerHeight
     };
     
-    state.canvas.width = rect.width;
-    state.canvas.height = rect.height;
+    state.canvas.width = window.innerWidth;
+    state.canvas.height = window.innerHeight;
 }
 
 // Point Management
@@ -240,14 +245,11 @@ function animate() {
 
 // Event Handlers
 function handleMouseMove(e) {
-    if (!state.isMobile) {  // Only handle mouse events on desktop
-        const mainContent = document.getElementById('main-content');
-        const rect = mainContent.getBoundingClientRect();
-        
-        state.mouse.x = e.clientX - rect.left;
-        state.mouse.y = e.clientY - rect.top;
-        
+    if (!state.isMobile) { // Only handle mouse events on desktop
+        state.mouse.x = e.clientX;
+        state.mouse.y = e.clientY;
         state.isMouseMoving = true;
+        
         clearTimeout(state.mouseTimer);
         state.mouseTimer = setTimeout(() => {
             state.isMouseMoving = false;
@@ -265,14 +267,12 @@ function handleMouseLeave() {
 
 function handleTouchStart(e) {
     const touch = e.touches[0];
-    const mainContent = document.getElementById('main-content');
-    const rect = mainContent.getBoundingClientRect();
     
     state.isTouch = true;
-    state.mouse.x = touch.clientX - rect.left;
-    state.mouse.y = touch.clientY - rect.top;
+    state.mouse.x = touch.clientX;
+    state.mouse.y = touch.clientY;
     state.isMouseMoving = true;
-
+    
     clearTimeout(state.mouseTimer);
 }
 
@@ -305,10 +305,141 @@ function handleSplashScreen() {
     }
 }
 
+// Product List Download functionality
+function downloadProductList() {
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = 'assets/documents/AyuNutra Product list.pdf';
+    link.download = 'AyuNutra Product list.pdf';
+    link.click();
+}
+
+function setupAccreditationScroll() {
+    const grid = document.querySelector('.accreditation-grid');
+    if (!grid) return;
+
+    // Duplicate the cards to create a seamless loop
+    const cards = grid.innerHTML;
+    grid.innerHTML += cards; // Append the same cards again for infinite scrolling
+
+    // Adjust the animation duration based on the total width
+    const totalWidth = grid.scrollWidth / 2; // Since we duplicated the cards
+    const duration = totalWidth / 50; // Adjust speed (50px per second)
+    grid.style.animationDuration = `${duration}s`;
+}
+
+function setupMapPins() {
+    // List of countries with names and ISO codes
+    const countries = [
+        { name: 'Sri Lanka', code: 'LK' },
+        { name: 'Ghana', code: 'GH' },
+        { name: 'Myanmar', code: 'MM' },
+        { name: 'El Salvador', code: 'SV' },
+        { name: 'Dominican Republic', code: 'DO' },
+        { name: 'Azerbaijan', code: 'AZ' },
+        { name: 'Malawi', code: 'MW' },
+        { name: 'Uzbekistan', code: 'UZ' },
+        { name: 'Mali', code: 'ML' },
+        { name: 'Cambodia', code: 'KH' },
+        { name: 'USA', code: 'US' },
+        { name: 'India', code: 'IN' } // Added India
+    ];
+
+    // Get the SVG element
+    const svg = document.querySelector('.world-map svg');
+    if (!svg) {
+        console.warn('SVG map not found. Check if .world-map contains an SVG element.');
+        return;
+    }
+
+    // Check the viewBox
+    const viewBox = svg.viewBox.baseVal;
+    if (!viewBox || !viewBox.width || !viewBox.height) {
+        console.warn('SVG viewBox is not defined or invalid. Add a viewBox attribute like "0 0 1000 600".');
+    }
+    const vbWidth = viewBox.width;
+    const vbHeight = viewBox.height;
+
+    // Get the pin container
+    const pinContainer = document.querySelector('.pin-container');
+    if (!pinContainer) {
+        console.warn('Pin container not found. Ensure .pin-container exists in your HTML.');
+        return;
+    }
+
+    // Process each country
+    countries.forEach(country => {
+        const countryPath = document.getElementById(country.code);
+        if (countryPath) {
+            let pinLeft, pinTop;
+
+            // Special handling for USA with custom coordinates
+            if (country.code === 'US') {
+                // Custom coordinates for USA (adjust these based on your SVG)
+                const customX = 250; // Example X coordinate (continental USA)
+                const customY = 150; // Example Y coordinate (continental USA)
+                pinLeft = 17.320968627929688;
+                pinTop = 53.947775640486604;
+            } else if(country.code === 'IN') {
+                // Custom coordinates for USA (adjust these based on your SVG)
+                const svgRect = svg.getBoundingClientRect();
+                const pathRect = countryPath.getBoundingClientRect();
+                pinLeft = (((pathRect.left + pathRect.width / 2 - svgRect.left) / svgRect.width) * 100)-1;
+                pinTop = (((pathRect.top + pathRect.height / 2 - svgRect.top) / svgRect.height) * 100)+1;
+            } else {
+                // Alternative method using getBoundingClientRect for other countries
+                const svgRect = svg.getBoundingClientRect();
+                const pathRect = countryPath.getBoundingClientRect();
+                pinLeft = ((pathRect.left + pathRect.width / 2 - svgRect.left) / svgRect.width) * 100;
+                pinTop = ((pathRect.top + pathRect.height / 2 - svgRect.top) / svgRect.height) * 100;
+            }
+
+            // Create the pin
+            const pin = document.createElement('div');
+            pin.className = 'map-pin';
+            pin.style.left = `${pinLeft}%`;
+            pin.style.top = `${pinTop}%`;
+
+            if (country.code === 'IN') {
+                const img = document.createElement('img');
+                img.src = 'assets/images/letter-logo.webp';
+                img.alt = 'AyuNutra Logo';
+                pin.appendChild(img);
+                const tooltip = document.createElement('span');
+                tooltip.className = 'country-tooltip';
+                tooltip.textContent = 'AyuNutra Pharmaceuticals, India';
+                pin.appendChild(tooltip);
+            } else {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-map-marker-alt';
+                pin.appendChild(icon);
+                const tooltip = document.createElement('span');
+                tooltip.className = 'country-tooltip';
+                tooltip.textContent = country.name;
+                pin.appendChild(tooltip);
+            }
+
+            // Add hover event listeners for highlighting
+            pin.addEventListener('mouseenter', () => {
+                countryPath.classList.add('highlight');
+            });
+            pin.addEventListener('mouseleave', () => {
+                countryPath.classList.remove('highlight');
+            });
+
+            pinContainer.appendChild(pin);
+        } else {
+            console.warn(`Country path not found for ${country.name} (${country.code}). Check SVG path IDs.`);
+        }
+    });
+}
+
 // Initialize
 function init() {
     setupCanvas();
     createPoints();
+    setupMapPins();
+    setupAccreditationScroll();
     
     // Event Listeners
     const mainContent = document.getElementById('main-content');
@@ -329,8 +460,268 @@ function init() {
     handleSplashScreen();
 }
 
+        // Hero Carousel
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.hero-slide');
+        const totalSlides = slides.length;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            showSlide(currentSlide);
+        }
+
+        // Auto-advance carousel
+        setInterval(nextSlide, 5000);
+
+        // Scroll to top functionality
+        const scrollTopBtn = document.querySelector('.scroll-top');
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Combined scroll handlers
+        window.addEventListener('scroll', function() {
+            const heroBottom = heroSection.offsetTop + heroSection.offsetHeight - 100;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // Header behavior
+            if (scrollTop < heroBottom) {
+                if (!headerInitialized) {
+                    header.classList.add('initial');
+                    header.classList.remove('sticky');
+                }
+            } else {
+                header.classList.remove('initial');
+                header.classList.add('sticky');
+                headerInitialized = true;
+            }
+            
+            // Scroll to top button
+            if (scrollTop > 300) {
+                scrollTopBtn.classList.add('show');
+            } else {
+                scrollTopBtn.classList.remove('show');
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const headerHeight = document.querySelector('header').offsetHeight;
+                    const targetPosition = target.offsetTop - headerHeight;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });  
+
+
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const nav = document.querySelector('nav');
+
+        // Create overlay element
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-menu-overlay';
+        document.body.appendChild(overlay);
+
+        mobileMenu.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            nav.classList.toggle('active');
+            this.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            // Force reflow for mobile devices
+            nav.offsetHeight;
+            
+            // Prevent body scroll when menu is open
+            document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
+        });
+
+        // Close menu when overlay is clicked
+        overlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            nav.classList.remove('active');
+            mobileMenu.classList.remove('active');
+            this.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // Close menu when nav link is clicked
+        nav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                // Small delay to allow for smooth transition
+                setTimeout(() => {
+                    nav.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }, 100);
+            });
+        });
+
+        // Header scroll effect - sticky after carousel
+        const header = document.querySelector('header');
+        const heroSection = document.querySelector('.hero');
+        let headerInitialized = false;
+
+        // Initially show header
+        header.classList.add('initial');
+
+        window.addEventListener('scroll', function() {
+            const heroBottom = heroSection.offsetTop + heroSection.offsetHeight - 100; // 100px buffer
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop < heroBottom) {
+                // User is still in hero section or above
+                if (!headerInitialized) {
+                    header.classList.add('initial');
+                    header.classList.remove('sticky');
+                }
+            } else {
+                // User has scrolled past the carousel
+                header.classList.remove('initial');
+                header.classList.add('sticky');
+                headerInitialized = true;
+            }
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Add a class instead of setting inline styles
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for animation - Remove inline style setting
+        document.querySelectorAll('.product-card, .accreditation-card, .about-content > *').forEach(el => {
+            // Add initial class instead of inline styles
+            el.classList.add('animate-initial');
+            observer.observe(el);
+        });
+        
+        // Counter animation for global stats
+        function animateCounter(element, target, duration) {
+            let start = 0;
+            const increment = target / (duration / 16);
+            
+            function updateCounter() {
+                start += increment;
+                if (start < target) {
+                    element.textContent = Math.floor(start) + (element.textContent.includes('+') ? '+' : '');
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    element.textContent = target + (element.textContent.includes('+') ? '+' : '');
+                }
+            }
+            
+            updateCounter();
+        }
+
+        // Animate counters when they come into view
+        const statsObserver = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const statNumber = entry.target.querySelector('.stat-number');
+                    const text = statNumber.textContent;
+                    const number = parseInt(text.replace(/\D/g, ''));
+                    const hasPlus = text.includes('+');
+                    
+                    statNumber.textContent = '0' + (hasPlus ? '+' : '');
+                    animateCounter(statNumber, number, 2000);
+                    
+                    statsObserver.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.stat-item').forEach(item => {
+            statsObserver.observe(item);
+        });
+
+        // Add loading animation
+        window.addEventListener('load', function() {
+            document.body.classList.add('loaded');
+        });
+
+        // Add mobile menu styles for responsive design
+        if (window.innerWidth <= 768) {
+            const style = document.createElement('style');
+            style.textContent = `
+                nav {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    background: white;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    transform: translateY(-100%);
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: all 0.3s ease;
+                }
+                
+                nav.active {
+                    transform: translateY(0);
+                    opacity: 1;
+                    visibility: visible;
+                }
+                
+                nav ul {
+                    flex-direction: column;
+                    padding: 1rem;
+                    gap: 1rem;
+                }
+                
+                .mobile-menu.active span:nth-child(1) {
+                    transform: rotate(45deg) translate(5px, 5px);
+                }
+                
+                .mobile-menu.active span:nth-child(2) {
+                    opacity: 0;
+                }
+                
+                .mobile-menu.active span:nth-child(3) {
+                    transform: rotate(-45deg) translate(7px, -6px);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
 // Initialize splash screen after DOM content is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new SplashScreenController();
     init(); // Initialize the rest of the application
+
+        document.querySelectorAll('.download-product-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            downloadProductList();
+        });
+    });
 });
