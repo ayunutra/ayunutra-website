@@ -305,15 +305,6 @@ function handleSplashScreen() {
     }
 }
 
-// Product List Download functionality
-function downloadProductList() {
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = 'assets/documents/AyuNutra Product list.pdf';
-    link.download = 'AyuNutra Product list.pdf';
-    link.click();
-}
-
 function setupAccreditationScroll() {
     const grid = document.querySelector('.accreditation-grid');
     if (!grid) return;
@@ -717,11 +708,4 @@ function init() {
 document.addEventListener('DOMContentLoaded', () => {
     new SplashScreenController();
     init(); // Initialize the rest of the application
-
-        document.querySelectorAll('.download-product-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            downloadProductList();
-        });
-    });
 });
