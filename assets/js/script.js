@@ -474,6 +474,7 @@ function init() {
         mainContent.addEventListener('mousemove', handleMouseMove);
         mainContent.addEventListener('mouseleave', handleMouseLeave);
     }
+
     
     window.addEventListener('resize', handleResize);
     handleSplashScreen();
