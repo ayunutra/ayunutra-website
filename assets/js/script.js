@@ -83,7 +83,7 @@ class State {
         this.mouseTimer = null;
         this.bounds = null;
         this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        this.isTouch = false;
+        this.enableInteraction = !this.isMobile;
         this.fadeStartTime = null;
     }
 }
@@ -127,7 +127,7 @@ class FluidPoint {
             this.opacity = 0.3;
         }
 
-        if (state.isMouseMoving && mouse.x && mouse.y) {
+        if (state.enableInteraction && state.isMouseMoving && mouse.x && mouse.y) {
             const dx = mouse.x - this.x;
             const dy = mouse.y - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -138,7 +138,7 @@ class FluidPoint {
                 this.vx += (dx / distance) * force * this.density * forceFactor;
                 this.vy += (dy / distance) * force * this.density * forceFactor;
             }
-        } else {
+        } else if (state.enableInteraction) {
             const dx = this.baseX - this.x;
             const dy = this.baseY - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -148,25 +148,29 @@ class FluidPoint {
             this.vy += dy * returnForceFactor;
         }
 
-        const damping = 0.98;
-        this.vx *= CONFIG.ANIMATION.DRAG_FORCE * damping;
-        this.vy *= CONFIG.ANIMATION.DRAG_FORCE * damping;
-        
-        const maxSpeed = 2.5;
-        const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-        if (currentSpeed > maxSpeed) {
-            const scale = maxSpeed / currentSpeed;
-            this.vx *= scale;
-            this.vy *= scale;
+        if (state.enableInteraction) {
+            const damping = 0.98;
+            this.vx *= CONFIG.ANIMATION.DRAG_FORCE * damping;
+            this.vy *= CONFIG.ANIMATION.DRAG_FORCE * damping;
+            
+            const maxSpeed = 2.5;
+            const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            if (currentSpeed > maxSpeed) {
+                const scale = maxSpeed / currentSpeed;
+                this.vx *= scale;
+                this.vy *= scale;
+            }
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            this.handleBoundaryCollision();
         }
-
-        this.x += this.vx;
-        this.y += this.vy;
-
-        this.handleBoundaryCollision();
     }
 
     handleBoundaryCollision() {
+        if (!state.enableInteraction) return;
+
         const buffer = this.radius * 2;
         const bounds = state.bounds;
         
@@ -245,45 +249,20 @@ function animate() {
 
 // Event Handlers
 function handleMouseMove(e) {
-    if (!state.isMobile) { // Only handle mouse events on desktop
-        state.mouse.x = e.clientX;
-        state.mouse.y = e.clientY;
-        state.isMouseMoving = true;
-        
-        clearTimeout(state.mouseTimer);
-        state.mouseTimer = setTimeout(() => {
-            state.isMouseMoving = false;
-        }, CONFIG.ANIMATION.IDLE_TIMEOUT);
-    }
-}
-
-function handleMouseLeave() {
-    if (!state.isMobile) {
-        state.mouse.x = undefined;
-        state.mouse.y = undefined;
-        state.isMouseMoving = false;
-    }
-}
-
-function handleTouchStart(e) {
-    const touch = e.touches[0];
-    
-    state.isTouch = true;
-    state.mouse.x = touch.clientX;
-    state.mouse.y = touch.clientY;
+    state.mouse.x = e.clientX;
+    state.mouse.y = e.clientY;
     state.isMouseMoving = true;
     
     clearTimeout(state.mouseTimer);
-}
-
-function handleTouchEnd() {
-    state.isTouch = false;
-    clearTimeout(state.mouseTimer);
     state.mouseTimer = setTimeout(() => {
         state.isMouseMoving = false;
-        state.mouse.x = undefined;
-        state.mouse.y = undefined;
-    }, 150);
+    }, CONFIG.ANIMATION.IDLE_TIMEOUT);
+}
+
+function handleMouseLeave() {
+    state.mouse.x = undefined;
+    state.mouse.y = undefined;
+    state.isMouseMoving = false;
 }
 
 function handleResize() {
@@ -358,33 +337,89 @@ function setupMapPins() {
         return;
     }
 
+    // Check if the device is mobile
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     // Process each country
     countries.forEach(country => {
         const countryPath = document.getElementById(country.code);
         if (countryPath) {
             let pinLeft, pinTop;
+            if(isMobile) {
+                console.log('Mobile device detected, using custom coordinates for pins.');
+                switch (country.code) {
+                    case 'US':
+                        pinLeft = 17.320968627929688;
+                        pinTop = 54.947775640486604;
+                        break;
+                    case 'IN':
+                        pinLeft = 69.13727111816406;
+                        pinTop = 62.591904396513065;
+                        break;
+                    case 'LK':
+                        pinLeft = 69.49183654785156;
+                        pinTop = 67.23507294820046;
+                        break;
+                    case 'GH':
+                        pinLeft = 46.74879150390625;
+                        pinTop = 67.59819591602197;
+                        break;
+                    case 'MM':
+                        pinLeft = 73.90322570800781;
+                        pinTop = 62.00128176154838;
+                        break;
+                    case 'SV':
+                        pinLeft = 22.320968627929688;
+                        pinTop = 64.44778002018163;
+                        break;
+                    case 'DO':
+                        pinLeft = 27.530178833007813;
+                        pinTop = 62.28997154950106;
+                        break;
+                    case 'AZ':
+                        pinLeft = 60.2563720703125;
+                        pinTop = 52.2439090705236;
+                        break;
+                    case 'MW':
+                        pinLeft = 56.56344299316406;
+                        pinTop = 75.58572079268977;
+                        break;
+                    case 'UZ':
+                        pinLeft = 64.9783447265625;
+                        pinTop = 52.04356079717457;
+                        break;
+                    case 'ML': // Mali
+                        pinLeft = 46.01634521484375;
+                        pinTop = 61.93000826886422;
+                        break;
+                    case 'KH': // Cambodia
+                        pinLeft = 76.21014404296875;
+                        pinTop = 65.14895728220653;
+                        break;
+                }
 
-            // Special handling for USA with custom coordinates
-            if (country.code === 'US') {
-                // Custom coordinates for USA (adjust these based on your SVG)
-                const customX = 250; // Example X coordinate (continental USA)
-                const customY = 150; // Example Y coordinate (continental USA)
-                pinLeft = 17.320968627929688;
-                pinTop = 53.947775640486604;
-            } else if(country.code === 'IN') {
-                // Custom coordinates for USA (adjust these based on your SVG)
-                const svgRect = svg.getBoundingClientRect();
-                const pathRect = countryPath.getBoundingClientRect();
-                pinLeft = (((pathRect.left + pathRect.width / 2 - svgRect.left) / svgRect.width) * 100)-1;
-                pinTop = (((pathRect.top + pathRect.height / 2 - svgRect.top) / svgRect.height) * 100)+1;
             } else {
-                // Alternative method using getBoundingClientRect for other countries
-                const svgRect = svg.getBoundingClientRect();
-                const pathRect = countryPath.getBoundingClientRect();
-                pinLeft = ((pathRect.left + pathRect.width / 2 - svgRect.left) / svgRect.width) * 100;
-                pinTop = ((pathRect.top + pathRect.height / 2 - svgRect.top) / svgRect.height) * 100;
+                console.log('Desktop device detected, calculating pin positions based on SVG paths.');
+                // For desktop, use the SVG viewBox to calculate pin positions
+                // Special handling for USA with custom coordinates
+                if (country.code === 'US') {
+                    // Custom coordinates for USA (adjust these based on your SVG)
+                    pinLeft = 17.320968627929688;
+                    pinTop = 53.947775640486604;
+                } else if(country.code === 'IN') {
+                    // Custom coordinates for India (adjust these based on your SVG)
+                    const svgRect = svg.getBoundingClientRect();
+                    const pathRect = countryPath.getBoundingClientRect();
+                    pinLeft = (((pathRect.left + pathRect.width / 2 - svgRect.left) / svgRect.width) * 100)-1;
+                    pinTop = (((pathRect.top + pathRect.height / 2 - svgRect.top) / svgRect.height) * 100)+1;
+                } else {
+                    // Alternative method using getBoundingClientRect for other countries
+                    const svgRect = svg.getBoundingClientRect();
+                    const pathRect = countryPath.getBoundingClientRect();
+                    pinLeft = ((pathRect.left + pathRect.width / 2 - svgRect.left) / svgRect.width) * 100;
+                    pinTop = ((pathRect.top + pathRect.height / 2 - svgRect.top) / svgRect.height) * 100;
+                }
             }
-
             // Create the pin
             const pin = document.createElement('div');
             pin.className = 'map-pin';
@@ -392,22 +427,22 @@ function setupMapPins() {
             pin.style.top = `${pinTop}%`;
 
             if (country.code === 'IN') {
-                const img = document.createElement('img');
-                img.src = 'assets/images/letter-logo.webp';
-                img.alt = 'AyuNutra Logo';
-                pin.appendChild(img);
                 const tooltip = document.createElement('span');
                 tooltip.className = 'country-tooltip';
                 tooltip.textContent = 'AyuNutra Pharmaceuticals, India';
                 pin.appendChild(tooltip);
+                const img = document.createElement('img');
+                img.src = 'assets/images/letter-logo.webp';
+                img.alt = 'AyuNutra Logo';
+                pin.appendChild(img);
             } else {
-                const icon = document.createElement('i');
-                icon.className = 'fas fa-map-marker-alt';
-                pin.appendChild(icon);
                 const tooltip = document.createElement('span');
                 tooltip.className = 'country-tooltip';
                 tooltip.textContent = country.name;
                 pin.appendChild(tooltip);
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-map-pin'; 
+                pin.appendChild(icon);
             }
 
             // Add hover event listeners for highlighting
@@ -435,16 +470,9 @@ function init() {
     // Event Listeners
     const mainContent = document.getElementById('main-content');
     
-    // Desktop events
-    if (!state.isMobile) {
+    if (state.enableInteraction) {
         mainContent.addEventListener('mousemove', handleMouseMove);
         mainContent.addEventListener('mouseleave', handleMouseLeave);
-    }
-    
-    // Mobile events
-    if (state.isMobile) {
-        mainContent.addEventListener('touchstart', handleTouchStart);
-        mainContent.addEventListener('touchend', handleTouchEnd);
     }
     
     window.addEventListener('resize', handleResize);

@@ -33,8 +33,6 @@ img {
     -webkit-user-drag: none;
 }
 
-.fa-candy{--fa:"\e3e7";--fa--fa:"\e3e7\e3e7"}
-
 /* Splash Screen Container */
 #splash-screen {
     position: fixed;
@@ -461,7 +459,7 @@ nav a:hover::after {
     overflow: hidden;
     position: relative;
     width: 100%;
-    padding: 2.7rem 0;
+    padding: 1rem 0;
 }
 
 .accreditation-container::before,
@@ -1091,19 +1089,30 @@ footer {
         padding: 1rem;
     }
 
+    .world-map-container {
+        background-image: url('../images/world-map-mobile.svg');
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .world-map svg {
+        display: none;
+    }
+
     .map-pin {
         position: absolute;
         transform: translate(-50%, -100%); /* Center pin base at the coordinate */
         color: var(--accent-color); /* Pin color */
-        font-size: 1.2rem; /* Pin size */
+        font-size: 0.9rem; /* Pin size */
         cursor: pointer;
         pointer-events: all; /* Make pins clickable/hoverable */
         transition: transform 0.2s ease;
     }
 
     .map-pin img {
-        width: 1.2rem; /* Match the size of the standard pin */
-        height: auto;
+        width: auto; /* Match the size of the standard pin */
+        height: 0.9rem; /* Adjusted for mobile */
     }
 
     .map-pin .country-tooltip {
