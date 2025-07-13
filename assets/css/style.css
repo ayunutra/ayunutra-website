@@ -387,7 +387,7 @@ nav a:hover::after {
 }
 
 .read-more:hover {
-    color: var(--accent-secondary);
+    color: var(--text-primary);
     transform: translateX(5px);
 }
 
@@ -452,6 +452,25 @@ nav a:hover::after {
     font-size: 1.3rem;
     margin-bottom: 1rem;
     color: var(--accent-color);
+}
+
+.download-links {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.download-links .download-product-btn {
+    display: inline-block;
+    background: var(--primary-gradient);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: var(--box-shadow-medium);
+    transition: all 0.3s ease;
 }
 
 /* Accreditation */
@@ -1079,6 +1098,12 @@ footer {
 
     .address-break-mobile {
         display: inline;
+    }
+
+    .download-links {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
     }
 
     #global-reach {
