@@ -5,22 +5,35 @@
       xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-
 <url>
   <loc>https://www.ayunutrapharmaceuticals.com/</loc>
-  <lastmod>2025-07-08T08:02:20+00:00</lastmod>
+  <lastmod>2025-01-26T12:00:00+00:00</lastmod>
   <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://www.ayunutrapharmaceuticals.com/index.html</loc>
+  <lastmod>2025-01-26T12:00:00+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.ayunutrapharmaceuticals.com/products.html</loc>
+  <lastmod>2025-01-26T12:00:00+00:00</lastmod>
+  <priority>0.90</priority>
 </url>
 <url>
   <loc>https://www.ayunutrapharmaceuticals.com/assets/documents/AyuNutra-Product-List.pdf</loc>
   <lastmod>2025-07-08T08:02:20+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 <url>
-  <loc>https://www.ayunutrapharmaceuticals.com/index.html</loc>
-  <lastmod>2025-07-08T08:02:20+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>https://www.ayunutrapharmaceuticals.com/assets/documents/Dossier-List-Pharma-Products.pdf</loc>
+  <lastmod>2025-01-26T12:00:00+00:00</lastmod>
+  <priority>0.70</priority>
 </url>
-
+<url>
+  <loc>https://www.ayunutrapharmaceuticals.com/assets/documents/Dossier-Generic-Dietary-Supplements.pdf</loc>
+  <lastmod>2025-01-26T12:00:00+00:00</lastmod>
+  <priority>0.70</priority>
+</url>
 
 </urlset>
