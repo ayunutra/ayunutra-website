@@ -512,7 +512,7 @@ nav a:hover::after {
   height: 300px;
   object-fit: contain;
   padding: 1rem;
-  background: #f8f9fa;
+  background: #fefefe;
 }
 
 .product-overlay {
@@ -1172,14 +1172,6 @@ footer {
 
   .hero-slide:nth-child(3) {
     background-position: left 40% center;
-  }
-
-  .hero-slide:nth-child(4) {
-    background-position: left 20% center;
-  }
-
-  .hero-slide:nth-child(5) {
-    background-position: left 10% center;
   }
 
   .hero-content h1 {
