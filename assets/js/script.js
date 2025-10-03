@@ -561,7 +561,7 @@ window.addEventListener("scroll", function () {
   }
 
   // Scroll to top button
-  if (scrollTop > 300) {
+  if (scrollTop > 150) {
     scrollTopBtn.classList.add("show");
   } else {
     scrollTopBtn.classList.remove("show");
@@ -634,7 +634,8 @@ nav.querySelectorAll("a").forEach((link) => {
 
 // Header scroll effect - sticky after carousel
 const header = document.querySelector("header");
-const heroSection = document.querySelector(".hero");
+const heroSection =
+  document.querySelector(".hero") || document.querySelector(".product-hero");
 let headerInitialized = false;
 
 // Initially show header
@@ -723,6 +724,15 @@ document.querySelectorAll(".stat-item").forEach((item) => {
   statsObserver.observe(item);
 });
 
+// Auto-update year footer
+document.addEventListener("DOMContentLoaded", function () {
+  const yearSpan = document.getElementById("year");
+  const currentYear = new Date().getFullYear();
+  if (yearSpan) {
+    yearSpan.textContent = currentYear;
+  }
+});
+
 // Add loading animation
 window.addEventListener("load", function () {
   document.body.classList.add("loaded");
@@ -735,7 +745,6 @@ if (window.innerWidth <= 768) {
                 nav {
                     position: absolute;
                     top: 100%;
-                    left: 0;
                     right: 0;
                     background: white;
                     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
