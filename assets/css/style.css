@@ -481,97 +481,6 @@ nav a:hover::after {
   transition: all 0.3s ease;
 }
 
-/* Products Gallery */
-.products-gallery {
-  margin: 3rem 0;
-}
-
-.product-showcase {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  margin: 2rem 0;
-}
-
-.product-showcase-item {
-  position: relative;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: var(--box-shadow-medium);
-  transition: all 0.3s ease;
-}
-
-.product-showcase-item:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(76, 175, 147, 0.2);
-}
-
-.product-showcase-item img {
-  width: 100%;
-  height: 300px;
-  object-fit: contain;
-  padding: 1rem;
-  background: #fefefe;
-}
-
-.product-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.9));
-  color: white;
-  padding: 2rem 1.5rem 1.5rem;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
-}
-
-.product-showcase-item:hover .product-overlay {
-  transform: translateY(0);
-}
-
-.product-overlay h3 {
-  font-size: 1.3rem;
-  margin-bottom: 0.5rem;
-  color: #fff;
-}
-
-/* Products CTA */
-.products-cta {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 3rem 2rem;
-  text-align: center;
-  box-shadow: var(--box-shadow-medium);
-  margin-top: 4rem;
-}
-
-.products-cta h3 {
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.products-cta p {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.cta-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 /* Accreditation */
 .accreditation-container {
   overflow: hidden;
@@ -1230,15 +1139,6 @@ footer {
   .info-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-  }
-
-  .products-cta {
-    padding: 2rem 1rem;
-  }
-
-  .cta-buttons {
-    flex-direction: column;
-    align-items: center;
   }
 
   .cta-button {

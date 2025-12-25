@@ -634,8 +634,7 @@ nav.querySelectorAll("a").forEach((link) => {
 
 // Header scroll effect - sticky after carousel
 const header = document.querySelector("header");
-const heroSection =
-  document.querySelector(".hero") || document.querySelector(".product-hero");
+const heroSection = document.querySelector(".hero");
 let headerInitialized = false;
 
 // Initially show header
